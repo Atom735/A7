@@ -1,12 +1,12 @@
 .PHONY : all all_dirs clean
 
-CC          := $(TOOL_CC)
+CC          := gcc
 
-OUT_FILE    := a.exe
+OUT_FILE    := _a_run.exe
 CPPFLAGS    :=
-CFLAGS      := -O3 -g -Wall -std=c99 -march=pentium4 -IF:/A5/SDK/freetype-2.8/include
+CFLAGS      := -O3 -g -Wall -march=pentium4
 ASFLAGS     :=
-LDFLAGS     := -lOpenGL32 -lGDI32 -LF:/A5/SDK/freetype-2.8 -lft2
+LDFLAGS     :=
 
 # -Xpreprocessor -Xassembler -Xlinker
 

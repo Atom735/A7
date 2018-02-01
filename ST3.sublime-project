@@ -1,0 +1,16 @@
+{
+	"folders":
+	[
+		{
+			"path": "."
+		},
+		{
+			"name": "Inlcudes MinGW",
+			"path": "F:\\A5\\MinGW\\include"
+		},
+		{
+			"name": "ST3 Packages",
+			"path": "F:\\A5\\Sublime Text 3\\Data\\Packages"
+		}
+	]
+}

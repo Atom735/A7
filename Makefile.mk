@@ -6,7 +6,7 @@ OUT_FILE    := _a_run.exe
 CPPFLAGS    :=
 CFLAGS      := -O3 -g -Wall -march=pentium4
 ASFLAGS     :=
-LDFLAGS     :=
+LDFLAGS     := -lD3D9
 
 # -Xpreprocessor -Xassembler -Xlinker
 
@@ -15,6 +15,7 @@ DIR_LIBS    :=
 DIR_OBJ     := obj
 
 FILES_SRC   := \
+	src/log.c \
 	src/main.c
 
 

@@ -8,6 +8,13 @@
 #include <d3d9.h>
 #include "log.h"
 
+#include <ft2build.h>
+#include FT_FREETYPE_H
+
+FT_Library  _ftLib;
+FT_Face     _ftFace;
+FT_GlyphSlot  slot;
+int         n_points;
 
 /* Глобальные перменные */
     LPDIRECT3D9         g_pD3D          = NULL; /* Используется для создания интерфейса устройства Direct3D9 */
@@ -74,33 +81,35 @@ HRESULT InitD3D( HWND hWnd )
 //-----------------------------------------------------------------------------
 HRESULT InitVB()
 {
-    // Initialize three vertices for rendering a triangle
-    struct CUSTOMVERTEX vertices[] =
-    {
-        { 150.0f,  50.0f, 0.5f, 1.0f, 0xffff0000, }, // x, y, z, rhw, color
-        { 250.0f, 250.0f, 0.5f, 1.0f, 0xff00ff00, },
-        {  50.0f, 250.0f, 0.5f, 1.0f, 0xff00ffff, },
-    };
 
-    // Create the vertex buffer. Here we are allocating enough memory
-    // (from the default pool) to hold all our 3 custom vertices. We also
-    // specify the FVF, so the vertex buffer knows what data it contains.
-    if( FAILED( IDirect3DDevice9_CreateVertexBuffer( g_pd3dDevice, 3 * sizeof( struct CUSTOMVERTEX ),
+    if( slot->format == FT_GLYPH_FORMAT_OUTLINE ) {
+        LOGI( "FT_GLYPH_FORMAT_OUTLINE" );
+        LOGI( "n_contours: %hd", slot->outline.n_contours );
+        LOGI( "n_points: %hd", slot->outline.n_points );
+        n_points = slot->outline.n_points;
+        if( FAILED( IDirect3DDevice9_CreateVertexBuffer( g_pd3dDevice, n_points * sizeof( struct CUSTOMVERTEX ),
                                                   0, D3DFVF_CUSTOMVERTEX,
                                                   D3DPOOL_DEFAULT, &g_pVB, NULL ) ) )
-    {
-        return E_FAIL;
+        {
+            return E_FAIL;
+        }
+        VOID* pVertices;
+        if( FAILED( IDirect3DVertexBuffer9_Lock( g_pVB, 0, n_points * sizeof( struct CUSTOMVERTEX ), ( void** )&pVertices, 0 ) ) )
+            return E_FAIL;
+        struct CUSTOMVERTEX *pV = (struct CUSTOMVERTEX *)pVertices;
+        for (int i = 0; i < n_points; ++i)
+        {
+            pV[i].x = (FLOAT)slot->outline.points[i].x;
+            pV[i].y = (FLOAT)slot->outline.points[i].y;
+            pV[i].z = 0.5f;
+            pV[i].rhw = 1.0f;
+            pV[i].color = 0xff7f7f7f;
+        }
+        IDirect3DVertexBuffer9_Unlock( g_pVB );
+
+        return S_OK;
+
     }
-
-    // Now we fill the vertex buffer. To do this, we need to Lock() the VB to
-    // gain access to the vertices. This mechanism is required becuase vertex
-    // buffers may be in device memory.
-    VOID* pVertices;
-    if( FAILED( IDirect3DVertexBuffer9_Lock( g_pVB, 0, sizeof( vertices ), ( void** )&pVertices, 0 ) ) )
-        return E_FAIL;
-    memcpy( pVertices, vertices, sizeof( vertices ) );
-    IDirect3DVertexBuffer9_Unlock( g_pVB );
-
     return S_OK;
 }
 
@@ -151,7 +160,13 @@ VOID Render()
         // of our geometry (in this case, just one triangle).
         IDirect3DDevice9_SetStreamSource( g_pd3dDevice, 0, g_pVB, 0, sizeof( struct CUSTOMVERTEX ) );
         IDirect3DDevice9_SetFVF( g_pd3dDevice, D3DFVF_CUSTOMVERTEX );
-        IDirect3DDevice9_DrawPrimitive( g_pd3dDevice, D3DPT_TRIANGLELIST, 0, 1 );
+        int b = 0;
+        for (int i = 0; i < slot->outline.n_contours; ++i)
+        {
+            IDirect3DDevice9_DrawPrimitive( g_pd3dDevice, D3DPT_LINESTRIP, b, slot->outline.contours[i] -b );
+            b = slot->outline.contours[i]+1;
+            /* code */
+        }
 
         // End the scene
         IDirect3DDevice9_EndScene( g_pd3dDevice );
@@ -206,8 +221,31 @@ INT WINAPI WinMain( HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR pCmdLine, INT iC
 
     // Create the application's window
     HWND hWnd = CreateWindow( L"D3D Tutorial", L"D3D Tutorial 01: CreateDevice",
-                              WS_OVERLAPPEDWINDOW, 100, 100, 300, 300,
+                              WS_OVERLAPPEDWINDOW, 100, 100, 1024, 768,
                               NULL, NULL, wc.hInstance, NULL );
+
+    FT_Init_FreeType( &_ftLib );
+    FT_New_Face( _ftLib, "font.ttf", 0, &_ftFace );
+    // FT_Set_Char_Size( _ftFace, 0, 12*64, 96, 96 );
+    FT_Set_Pixel_Sizes( _ftFace, 0, 48 );
+    ;
+
+    FT_Load_Glyph( _ftFace, FT_Get_Char_Index( _ftFace, L'О' ), FT_LOAD_NO_SCALE );
+    slot = _ftFace->glyph;  /* a small shortcut */
+
+    if(slot->format == FT_GLYPH_FORMAT_NONE)
+        LOG("FT_GLYPH_FORMAT_NONE");
+    if(slot->format == FT_GLYPH_FORMAT_COMPOSITE)
+        LOG("FT_GLYPH_FORMAT_COMPOSITE");
+    if(slot->format == FT_GLYPH_FORMAT_BITMAP)
+        LOG("FT_GLYPH_FORMAT_BITMAP");
+    if(slot->format == FT_GLYPH_FORMAT_OUTLINE)
+        LOG("FT_GLYPH_FORMAT_OUTLINE");
+    if(slot->format == FT_GLYPH_FORMAT_PLOTTER)
+        LOG("FT_GLYPH_FORMAT_PLOTTER");
+
+
+
 
     // Initialize Direct3D
     if( SUCCEEDED( InitD3D( hWnd ) ) )
@@ -234,6 +272,10 @@ INT WINAPI WinMain( HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR pCmdLine, INT iC
             }
         }
     }
+
+
+    FT_Done_Face( _ftFace );
+    FT_Done_FreeType( _ftLib );
 
     UnregisterClass( L"D3D Tutorial", wc.hInstance );
     return 0;

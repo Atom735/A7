@@ -4,9 +4,9 @@ CC          := gcc
 
 OUT_FILE    := _a_run.exe
 CPPFLAGS    :=
-CFLAGS      := -O3 -g -Wall -march=pentium4
+CFLAGS      := -O3 -g -Wall -march=pentium4  -IF:/A5/SDK/freetype-2.8/include
 ASFLAGS     :=
-LDFLAGS     := -lD3D9
+LDFLAGS     := -lD3D9 -LF:/A5/SDK/freetype-2.8 -lft2
 
 # -Xpreprocessor -Xassembler -Xlinker
 

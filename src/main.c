@@ -3,6 +3,8 @@
 #endif
 #define WIN32_LEAN_AND_MEAN
 
+#define D3D_DEBUG_INFO
+
 #include <Windows.h>
 #include <WindowsX.h>
 #include <d3d9.h>
@@ -21,28 +23,72 @@
     } T_VERTEX_2DT, *PT_VERTEX_2DT;
 /* Константы */
     /* Константа структуры точек D3D9 2d Diffuse Texture */
-    #define D3DFVF_2DT  (D3DFVF_XYZ|D3DFVF_DIFFUSE|D3DFVF_TEX1)
+    #define D3DFVF_2DT  (D3DFVF_XYZRHW|D3DFVF_DIFFUSE|D3DFVF_TEX1)
     /* коды ошибок */
     enum {
         E_OK = 0,
         E_D3D_NULL,
         E_D3DD_NULL,
     };
-
 /* Глобальные перменные */
+    /* Интефрейс D3D9 */
+    IDirect3D9                 *g_D3D       = NULL;
+    /* Интерфейс устройства D3D9 */
+    IDirect3DDevice9           *g_D3DD      = NULL;
+    /* Буффер вершин */
+    IDirect3DVertexBuffer9     *g_D3DVB     = NULL;
+    /* Буффер индексов вершин */
+    IDirect3DIndexBuffer9      *g_D3DIB     = NULL;
+
+
     /* Библиотека FreeType */
     FT_Library                  g_ftLib;
     /* Фонт фейс FreeType */
     FT_Face                     g_ftFace;
 
-    /* Интефрейс D3D9 */
-    IDirect3D9                 *g_D3D;
-    /* Интерфейс устройства D3D9 */
-    IDirect3DDevice9           *g_D3DD;
-    /* Буффер вершин */
-    IDirect3DVertexBuffer9     *g_D3DVB;
-    /* Буффер индексов вершин */
-    IDirect3DIndexBuffer9      *g_D3DIB;
+VOID    D3D_ResInit()
+{
+    IDirect3DDevice9_CreateVertexBuffer( g_D3DD, 4096*sizeof(T_VERTEX_2DT), D3DUSAGE_WRITEONLY, D3DFVF_2DT, D3DPOOL_DEFAULT, &g_D3DVB, NULL );
+    {
+        T_VERTEX_2DT *pV;
+        IDirect3DVertexBuffer9_Lock( g_D3DVB, 0, 4096*sizeof(T_VERTEX_2DT), (VOID**)&pV, 0 );
+        for (UINT i = 0; i < 4096; ++i)
+        {
+            pV[i].x = i;
+            pV[i].y = (sin(i*0.03)+1)*500;
+            pV[i].z = (FLOAT)0.5;
+            pV[i].w = (FLOAT)1;
+            pV[i].c = 0xff000000+(i&255)*0x010101;
+        }
+        IDirect3DVertexBuffer9_Unlock( g_D3DVB );
+    }
+    IDirect3DDevice9_CreateIndexBuffer( g_D3DD, 4096*sizeof(UINT16), D3DUSAGE_WRITEONLY, D3DFMT_INDEX16, D3DPOOL_DEFAULT, &g_D3DIB, NULL );
+    {
+        UINT16 *pI;
+        IDirect3DIndexBuffer9_Lock( g_D3DIB, 0, 4096*sizeof(UINT16), (VOID**)&pI, 0 );
+        for (UINT i = 0; i < 4096; ++i)
+        {
+            pI[i] = i;
+        }
+        IDirect3DIndexBuffer9_Unlock( g_D3DIB );
+    }
+
+}
+
+VOID    D3D_Render()
+{
+    IDirect3DDevice9_Clear( g_D3DD, 0, NULL, D3DCLEAR_TARGET, D3DCOLOR_ARGB(0,0x10,0x50,0x90), 0.0f, 0);
+    IDirect3DDevice9_BeginScene( g_D3DD );
+    {
+        IDirect3DDevice9_SetStreamSource( g_D3DD, 0, g_D3DVB, 0, sizeof( T_VERTEX_2DT ) );
+        IDirect3DDevice9_SetFVF( g_D3DD, D3DFVF_2DT );
+        IDirect3DDevice9_SetIndices( g_D3DD, g_D3DIB );
+        IDirect3DDevice9_DrawIndexedPrimitive( g_D3DD, D3DPT_LINELIST, 0, 0, 4096, 0, 2048 );
+    }
+    IDirect3DDevice9_EndScene( g_D3DD );
+    IDirect3DDevice9_Present( g_D3DD, NULL, NULL, NULL, NULL );
+}
+
 
 /* Получить название формата D3D9 */
 const char * GetName_D3DFMT( D3DFORMAT fmt )
@@ -114,7 +160,7 @@ const char * GetName_D3DFMT( D3DFORMAT fmt )
 }
 
 /* Инициализация контекста Direct3D9 */
-INT     D3D_Init( HWND hWnd, UINT nWidth, UINT nHeight )
+UINT    D3D_Init( HWND hWnd, UINT nWidth, UINT nHeight )
 {
     /* Пытаемся получить интерфейс g_D3D */
     g_D3D = Direct3DCreate9( D3D_SDK_VERSION );
@@ -135,7 +181,7 @@ INT     D3D_Init( HWND hWnd, UINT nWidth, UINT nHeight )
         {
             /* Получаем тип отображения адаптера */
             IDirect3D9_GetAdapterDisplayMode( g_D3D, i, &dm );
-            LOGI("D3D9 Adapter[%u]: %ux%u:%u (%s)", i+1, dm.Width, dm.Height, dm.RefreshRate, GetName_D3DFMT( dm.Format ) );
+            LOGI("D3D9 Adapter[%u/%u]: %ux%u:%u (%s)", i+1, nAC, dm.Width, dm.Height, dm.RefreshRate, GetName_D3DFMT( dm.Format ) );
             if(nWidth == (UINT)-1) nWidth = dm.Width;
             if(nHeight == (UINT)-1) nHeight = dm.Height;
             /* Перечисляем возможные типы отображения адаптера */
@@ -146,7 +192,7 @@ INT     D3D_Init( HWND hWnd, UINT nWidth, UINT nHeight )
                     for (int j = 0; j < nAMC; ++j) \
                     { \
                         IDirect3D9_EnumAdapterModes( g_D3D, i, fmt, j, &dm ); \
-                        LOGI("D3D9 Adapter[%u]: [%u/%u] %ux%u:%u (%s)", i+1, j+1, nAMC, dm.Width, dm.Height, dm.RefreshRate, GetName_D3DFMT( dm.Format ) ); \
+                        LOGI("D3D9 Adapter[%u/%u]: [%u/%u] %ux%u:%u (%s)", i+1, nAC, j+1, nAMC, dm.Width, dm.Height, dm.RefreshRate, GetName_D3DFMT( dm.Format ) ); \
                     }
                 __A(D3DFMT_A1R5G5B5)
                 __A(D3DFMT_A2R10G10B10)
@@ -191,208 +237,111 @@ INT     D3D_Init( HWND hWnd, UINT nWidth, UINT nHeight )
         return E_D3DD_NULL;
     }
     LOGD("D3D9 Device interface: %p", g_D3DD);
+    D3D_ResInit();
     return E_OK;
 }
 /* Очистка контекста Direct3D9 */
 VOID    D3D_Release()
 {
+    if( g_D3DIB != NULL )
+        IDirect3DIndexBuffer9_Release( g_D3DIB );
+    if( g_D3DVB != NULL )
+        IDirect3DVertexBuffer9_Release( g_D3DVB );
     if( g_D3DD != NULL )
         IDirect3DDevice9_Release( g_D3DD );
     if( g_D3D != NULL )
         IDirect3D9_Release( g_D3D );
 }
-
-//-----------------------------------------------------------------------------
-// Name: InitVB()
-// Desc: Creates a vertex buffer and fills it with our vertices. The vertex
-//       buffer is basically just a chuck of memory that holds vertices. After
-//       creating it, we must Lock()/Unlock() it to fill it. For indices, D3D
-//       also uses index buffers. The special thing about vertex and index
-//       buffers is that they can be created in device memory, allowing some
-//       cards to process them in hardware, resulting in a dramatic
-//       performance gain.
-//-----------------------------------------------------------------------------
-// HRESULT InitVB()
-// {
-
-//     if( slot->format == FT_GLYPH_FORMAT_OUTLINE ) {
-//         LOGI( "FT_GLYPH_FORMAT_OUTLINE" );
-//         LOGI( "n_contours: %hd", slot->outline.n_contours );
-//         LOGI( "n_points: %hd", slot->outline.n_points );
-//         n_points = slot->outline.n_points;
-//         if( FAILED( IDirect3DDevice9_CreateVertexBuffer( g_D3DD, n_points * sizeof( struct CUSTOMVERTEX ),
-//                                                   0, D3DFVF_CUSTOMVERTEX,
-//                                                   D3DPOOL_DEFAULT, &g_D3DVB, NULL ) ) )
-//         {
-//             return E_FAIL;
-//         }
-//         VOID* pVertices;
-//         if( FAILED( IDirect3DVertexBuffer9_Lock( g_D3DVB, 0, n_points * sizeof( struct CUSTOMVERTEX ), ( void** )&pVertices, 0 ) ) )
-//             return E_FAIL;
-//         struct CUSTOMVERTEX *pV = (struct CUSTOMVERTEX *)pVertices;
-//         for (int i = 0; i < n_points; ++i)
-//         {
-//             pV[i].x = (FLOAT)slot->outline.points[i].x;
-//             pV[i].y = (FLOAT)slot->outline.points[i].y;
-//             pV[i].z = 0.5f;
-//             pV[i].rhw = 1.0f;
-//             pV[i].color = 0xff7f7f7f;
-//         }
-//         IDirect3DVertexBuffer9_Unlock( g_D3DVB );
-
-//         return S_OK;
-
-//     }
-//     return S_OK;
-// }
-
-
-
-
-//-----------------------------------------------------------------------------
-// Name: Render()
-// Desc: Draws the scene
-//-----------------------------------------------------------------------------
-// VOID Render()
-// {
-//     if( NULL == g_D3DD )
-//         return;
-
-//     // Clear the backbuffer to a blue color
-//     IDirect3DDevice9_Clear( g_D3DD, 0, NULL, D3DCLEAR_TARGET, D3DCOLOR_XRGB( 0, 0, 255 ), 1.0f, 0 );
-
-//     // Begin the scene
-//     if( SUCCEEDED( IDirect3DDevice9_BeginScene( g_D3DD ) ) )
-//     {
-//         // Rendering of scene objects can happen here
-//         // Draw the triangles in the vertex buffer. This is broken into a few
-//         // steps. We are passing the vertices down a "stream", so first we need
-//         // to specify the source of that stream, which is our vertex buffer. Then
-//         // we need to let D3D know what vertex shader to use. Full, custom vertex
-//         // shaders are an advanced topic, but in most cases the vertex shader is
-//         // just the FVF, so that D3D knows what type of vertices we are dealing
-//         // with. Finally, we call DrawPrimitive() which does the actual rendering
-//         // of our geometry (in this case, just one triangle).
-//         IDirect3DDevice9_SetStreamSource( g_D3DD, 0, g_D3DVB, 0, sizeof( struct CUSTOMVERTEX ) );
-//         IDirect3DDevice9_SetFVF( g_D3DD, D3DFVF_CUSTOMVERTEX );
-//         int b = 0;
-//         for (int i = 0; i < slot->outline.n_contours; ++i)
-//         {
-//             IDirect3DDevice9_DrawPrimitive( g_D3DD, D3DPT_LINESTRIP, b, slot->outline.contours[i] -b );
-//             b = slot->outline.contours[i]+1;
-//             /* code */
-//         }
-
-//         // End the scene
-//         IDirect3DDevice9_EndScene( g_D3DD );
-//     }
-
-//     // Present the backbuffer contents to the display
-//     IDirect3DDevice9_Present( g_D3DD, NULL, NULL, NULL, NULL );
-// }
-
-
-
-
-//-----------------------------------------------------------------------------
-// Name: MsgProc()
-// Desc: The window's message handler
-//-----------------------------------------------------------------------------
-LRESULT WINAPI MsgProc( HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam )
+/* Обработчик сообщений окна */
+LRESULT WINAPI WndMsgProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
 {
-    switch( msg )
+    switch( uMsg )
     {
-        case WM_DESTROY:
+        /* Обработка создания окна */
+        case WM_CREATE:
+        {
+            UINT e = D3D_Init( hWnd, (UINT)-1, (UINT)-1 );
+            if( e == E_D3D_NULL )
+            {
+                return -1;
+            }
+
+            if( e == E_D3DD_NULL )
+            {
+                IDirect3DDevice9_Release( g_D3DD );
+                return -1;
+            }
+            return 0;
+        }
+        /* Обработка закрытия окна */
+        case WM_CLOSE:
             D3D_Release();
+            DestroyWindow( hWnd );
+            return 0;
+        /* Обработка уничтожения окна */
+        case WM_DESTROY:
             PostQuitMessage( 0 );
             return 0;
-
+        /* Обработка перерисовки окна */
         case WM_PAINT:
-            // Render();
+            D3D_Render();
             ValidateRect( hWnd, NULL );
             return 0;
     }
-
-    return DefWindowProc( hWnd, msg, wParam, lParam );
+    return DefWindowProc( hWnd, uMsg, wParam, lParam );
 }
-
-
-
-
-//-----------------------------------------------------------------------------
-// Name: wWinMain()
-// Desc: The application's entry point
-//-----------------------------------------------------------------------------
+/* Точка входа */
 INT WINAPI WinMain( HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR pCmdLine, INT iCmd)
 {
-    // Register the window class
-    WNDCLASSEX wc =
+    /* Регистрация класса окна */
+    WNDCLASSEX wc;
     {
-        sizeof( WNDCLASSEX ), CS_CLASSDC, MsgProc, 0L, 0L,
-        GetModuleHandle( NULL ), NULL, NULL, NULL, NULL,
-        L"D3D Tutorial", NULL
-    };
+        ZeroMemory( &wc, sizeof( wc ) );
+        // UINT  cbSize;
+        // UINT  style;
+        // WNDPROC  lpfnWndProc;
+        // int  cbClsExtra;
+        // int  cbWndExtra;
+        // HINSTANCE  hInstance;
+        // HICON  hIcon;
+        // HCURSOR  hCursor;
+        // HBRUSH  hbrBackground;
+        // LPCTSTR  lpszMenuName;
+        // LPCTSTR  lpszClassName;
+        // HICON  hIconSm;
+        wc.cbSize           = sizeof( wc );
+        wc.style            = CS_CLASSDC;
+        wc.lpfnWndProc      = WndMsgProc;
+        wc.hInstance        = hInst;
+        wc.lpszClassName    = TEXT("A7Con");
+    }
     RegisterClassEx( &wc );
-
-    // Create the application's window
-    HWND hWnd = CreateWindow( L"D3D Tutorial", L"D3D Tutorial 01: CreateDevice",
-                              WS_OVERLAPPEDWINDOW, 100, 100, 1024, 768,
-                              NULL, NULL, wc.hInstance, NULL );
-
-    // FT_Init_FreeType( &_ftLib );
-    // FT_New_Face( _ftLib, "font.ttf", 0, &_ftFace );
-    // // FT_Set_Char_Size( _ftFace, 0, 12*64, 96, 96 );
-    // FT_Set_Pixel_Sizes( _ftFace, 0, 48 );
-    // ;
-
-    // FT_Load_Glyph( _ftFace, FT_Get_Char_Index( _ftFace, L'О' ), FT_LOAD_NO_SCALE );
-    // slot = _ftFace->glyph;  /* a small shortcut */
-
-    // if(slot->format == FT_GLYPH_FORMAT_NONE)
-    //     LOG("FT_GLYPH_FORMAT_NONE");
-    // if(slot->format == FT_GLYPH_FORMAT_COMPOSITE)
-    //     LOG("FT_GLYPH_FORMAT_COMPOSITE");
-    // if(slot->format == FT_GLYPH_FORMAT_BITMAP)
-    //     LOG("FT_GLYPH_FORMAT_BITMAP");
-    // if(slot->format == FT_GLYPH_FORMAT_OUTLINE)
-    //     LOG("FT_GLYPH_FORMAT_OUTLINE");
-    // if(slot->format == FT_GLYPH_FORMAT_PLOTTER)
-    //     LOG("FT_GLYPH_FORMAT_PLOTTER");
-
-
-
-
-    // Initialize Direct3D
-    if( SUCCEEDED( D3D_Init( hWnd, 0, 0 ) ) )
+    /* Создаём окно приложения */
+    HWND hWnd = CreateWindow( wc.lpszClassName, TEXT("Empty title..."), WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, NULL, NULL, wc.hInstance, NULL );
+    /* Проверяем созданно ли */
+    if( hWnd == NULL )
     {
-        // Create the vertex buffer
-        // if( SUCCEEDED( InitVB() ) )
-        {
-            // Show the window
-            ShowWindow( hWnd, SW_SHOWDEFAULT );
-            UpdateWindow( hWnd );
+        UnregisterClass( wc.lpszClassName, wc.hInstance );
+        return -1;
+    }
+    ShowWindow( hWnd, SW_SHOW );
+    UpdateWindow( hWnd );
 
-            // Enter the message loop
-            MSG msg;
-            ZeroMemory( &msg, sizeof( msg ) );
-            while( msg.message != WM_QUIT )
-            {
-                if( PeekMessage( &msg, NULL, 0U, 0U, PM_REMOVE ) )
-                {
-                    TranslateMessage( &msg );
-                    DispatchMessage( &msg );
-                }
-            }
+    MSG msg;
+    ZeroMemory( &msg, sizeof( msg ) );
+    while( msg.message != WM_QUIT )
+    {
+        if( PeekMessage( &msg, NULL, 0, 0, PM_REMOVE ) )
+        {
+            TranslateMessage( &msg );
+            DispatchMessage( &msg );
+        }
+        else
+        {
+            D3D_Render();
         }
     }
 
-
-    // FT_Done_Face( _ftFace );
-    // FT_Done_FreeType( _ftLib );
-
-    UnregisterClass( L"D3D Tutorial", wc.hInstance );
-    return 0;
+    UnregisterClass( wc.lpszClassName, wc.hInstance );
+    return msg.wParam;
 }
-
-
-

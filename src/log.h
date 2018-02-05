@@ -1,6 +1,8 @@
 #ifndef _H_LOG
 #define _H_LOG
 
+#include "_.h"
+
 enum {
     LOG_T_VERB = 0,
     LOG_T_DEBUG,
@@ -19,4 +21,4 @@ enum {
 #define LOGF(...) LOG_T(LOG_T_FATAL, __VA_ARGS__)
 void LOG_T( unsigned int type, const char *fmt, ... );
 
-#endif
+#endif /* _H_LOG */

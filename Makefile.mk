@@ -16,7 +16,10 @@ DIR_OBJ     := obj
 
 FILES_SRC   := \
 	src/log.c \
-	src/main.c
+	src/main.c \
+	src/api.c \
+	src/ft.c \
+	src/txt.c
 
 
 # Пути к объектным файлам

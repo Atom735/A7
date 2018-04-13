@@ -76,6 +76,7 @@ VOID    D3D_ResInit()
     IDirect3DDevice9_SetTextureStageState( g_D3DD, 0, D3DTSS_ALPHAOP, D3DTOP_MODULATE );
     IDirect3DDevice9_SetTextureStageState( g_D3DD, 0, D3DTSS_ALPHAARG1, D3DTA_DIFFUSE );
     IDirect3DDevice9_SetTextureStageState( g_D3DD, 0, D3DTSS_ALPHAARG2, D3DTA_TEXTURE );
+
     IDirect3DDevice9_SetSamplerState( g_D3DD, 0, D3DSAMP_MAGFILTER, D3DTEXF_NONE );
     IDirect3DDevice9_SetSamplerState( g_D3DD, 0, D3DSAMP_MINFILTER, D3DTEXF_NONE );
     IDirect3DDevice9_SetSamplerState( g_D3DD, 0, D3DSAMP_MIPFILTER, D3DTEXF_NONE );
@@ -332,16 +333,7 @@ LRESULT WINAPI WndMsgProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
             g_D3DVP.MaxZ    = 1.0f;
             if( g_D3DVP.Width == 0 ) g_D3DVP.Width = 1;
             if( g_D3DVP.Height == 0 ) g_D3DVP.Height = 1;
-            IDirect3DDevice9_SetViewport( g_D3DD, &g_D3DVP );
-            {
-                D3DMATRIX m = {
-                    ._11 = 2.0f/(FLOAT)g_D3DVP.Width, ._12 = 0.0f, ._13 = 0.0f, ._14 = 0.0f,
-                    ._21 = 0.0f, ._22 =-2.0f/(FLOAT)g_D3DVP.Height, ._23 = 0.0f, ._24 = 0.0f,
-                    ._31 = 0.0f, ._32 = 0.0f, ._33 = 1.0f, ._34 = 0.0f,
-                    ._41 =-1.0f, ._42 = 1.0f, ._43 = 0.0f, ._44 = 1.0f,
-                    };
-                IDirect3DDevice9_SetTransform( g_D3DD, D3DTS_PROJECTION, &m );
-            }
+            IDirect3DDevice9_SetVPP2D( g_D3DD, &g_D3DVP );
             testStrings();
             D3D_Render();
             LOGI("WM_SIZE: %ux%u", g_D3DVP.Width, g_D3DVP.Height);

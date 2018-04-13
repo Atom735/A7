@@ -30,17 +30,20 @@ void            TXT_Free( T_TXT *txt )
     free( txt );
 }
 /* Начать добавление */
-void            TXT_BeginAdd( T_TXT *txt )
+void            TXT_EditBegin( T_TXT *txt )
 {
     txt->adding = 1;
     IDirect3DVertexBuffer9_Lock( txt->D3DVB, 0, 0, &txt->pV, 0 );
 
 }
 /* Закончить добавление */
-void            TXT_EndAdd( T_TXT *txt )
+void            TXT_EditEnd( T_TXT *txt )
 {
+    if( txt->adding != 0 )
+    {
+        IDirect3DVertexBuffer9_Unlock( txt->D3DVB );
+    }
     txt->adding = 0;
-    IDirect3DVertexBuffer9_Unlock( txt->D3DVB );
 }
 /* Добавление квадрата */
 unsigned int    TXT_AddRect( T_TXT *txt, FLOAT pX, FLOAT pY, FLOAT pZ, DWORD color, FLOAT fW, FLOAT fH, FLOAT tU0, FLOAT tV0, FLOAT tU1, FLOAT tV1 )
@@ -49,7 +52,7 @@ unsigned int    TXT_AddRect( T_TXT *txt, FLOAT pX, FLOAT pY, FLOAT pZ, DWORD col
     if( fW == 0.0f || fH == 0.0f ) return 0;
     if( txt->adding == 0 )
     {
-        TXT_BeginAdd( txt );
+        TXT_EditBegin( txt );
         txt->adding = 2;
     }
     switch( txt->D3DFVF )
@@ -78,7 +81,7 @@ unsigned int    TXT_AddRect( T_TXT *txt, FLOAT pX, FLOAT pY, FLOAT pZ, DWORD col
 
     if( txt->adding == 2 )
     {
-        TXT_EndAdd( txt );
+        TXT_EditEnd( txt );
     }
     return txt->count;
 }
@@ -87,7 +90,7 @@ unsigned int    TXT_AddFT7Line( T_TXT *txt, T_FTTEX *ft7, FLOAT pX, FLOAT pY, FL
 {
     if( txt->adding == 0 )
     {
-        TXT_BeginAdd( txt );
+        TXT_EditBegin( txt );
         txt->adding = 3;
     }
     FLOAT _F = 1.0f/(FLOAT)ft7->size;
@@ -115,109 +118,14 @@ unsigned int    TXT_AddFT7Line( T_TXT *txt, T_FTTEX *ft7, FLOAT pX, FLOAT pY, FL
 
     if( txt->adding == 3 )
     {
-        TXT_EndAdd( txt );
+        TXT_EditEnd( txt );
     }
     return i;
-}
-/* Добавление символов */
-void            TXT_AddFT7Symbol( T_TXT *txt, T_FTSYM *ft7s, FLOAT pX, FLOAT pY, FLOAT pZ, DWORD color, FLOAT tX, FLOAT tY, FLOAT tF )
-{
-    if( txt->count >= txt->cmax ) return;
-    if( ft7s->tW == 0 || ft7s->tH == 0 ) return;
-    if( txt->adding == 0 )
-    {
-        TXT_BeginAdd( txt );
-        txt->adding = 2;
-    }
-
-    switch( txt->D3DFVF )
-    {
-        case D3DFVF_3DT:
-        {
-            T_VERTEX_3DT *pV;
-            IDirect3DVertexBuffer9_Lock( txt->D3DVB, txt->count*4*sizeof(T_VERTEX_3DT), 4*sizeof(T_VERTEX_3DT), (VOID**)&pV, 0 );
-            pV->x = ( pX + (FLOAT)ft7s->aX );
-            pV->y = ( pY + (FLOAT)ft7s->aY );
-            pV->z = pZ;
-            pV->c = color;
-            pV->u = ( (FLOAT)ft7s->tX + tX ) * tF;
-            pV->v = ( (FLOAT)ft7s->tY + tY ) * tF;
-            ++pV;
-            pV->x = ( pX + (FLOAT)ft7s->aX + (FLOAT)ft7s->tW );
-            pV->y = ( pY + (FLOAT)ft7s->aY );
-            pV->z = pZ;
-            pV->c = color;
-            pV->u = ( (FLOAT)ft7s->tX + tX + (FLOAT)ft7s->tW ) * tF;
-            pV->v = ( (FLOAT)ft7s->tY + tY ) * tF;
-            ++pV;
-            pV->x = ( pX + (FLOAT)ft7s->aX );
-            pV->y = ( pY + (FLOAT)ft7s->aY - (FLOAT)ft7s->tH );
-            pV->z = pZ;
-            pV->c = color;
-            pV->u = ( (FLOAT)ft7s->tX + tX ) * tF;
-            pV->v = ( (FLOAT)ft7s->tY + tY + (FLOAT)ft7s->tH ) * tF;
-            ++pV;
-            pV->x = ( pX + (FLOAT)ft7s->aX + (FLOAT)ft7s->tW );
-            pV->y = ( pY + (FLOAT)ft7s->aY - (FLOAT)ft7s->tH );
-            pV->z = pZ;
-            pV->c = color;
-            pV->u = ( (FLOAT)ft7s->tX + tX + (FLOAT)ft7s->tW ) * tF;
-            pV->v = ( (FLOAT)ft7s->tY + tY + (FLOAT)ft7s->tH ) * tF;
-            IDirect3DVertexBuffer9_Unlock( txt->D3DVB );
-            break;
-        }
-        case D3DFVF_2DT:
-        default:
-        {
-            T_VERTEX_2DT *pV;
-            IDirect3DVertexBuffer9_Lock( txt->D3DVB, txt->count*4*sizeof(T_VERTEX_2DT), 4*sizeof(T_VERTEX_2DT), (VOID**)&pV, 0 );
-            pV->x = pX + (FLOAT)ft7s->aX;
-            pV->y = pY - (FLOAT)ft7s->aY;
-            pV->z = pZ;
-            pV->w = 1.0f;
-            pV->c = color;
-            pV->u = ( (FLOAT)ft7s->tX + tX ) * tF;
-            pV->v = ( (FLOAT)ft7s->tY + tY ) * tF;
-            ++pV;
-            pV->x = pX + (FLOAT)ft7s->aX + (FLOAT)ft7s->tW;
-            pV->y = pY - (FLOAT)ft7s->aY;
-            pV->z = pZ;
-            pV->w = 1.0f;
-            pV->c = color;
-            pV->u = ( (FLOAT)ft7s->tX + tX + (FLOAT)ft7s->tW ) * tF;
-            pV->v = ( (FLOAT)ft7s->tY + tY ) * tF;
-            ++pV;
-            pV->x = pX + (FLOAT)ft7s->aX;
-            pV->y = pY - (FLOAT)ft7s->aY + (FLOAT)ft7s->tH;
-            pV->z = pZ;
-            pV->w = 1.0f;
-            pV->c = color;
-            pV->u = ( (FLOAT)ft7s->tX + tX ) * tF;
-            pV->v = ( (FLOAT)ft7s->tY + tY + (FLOAT)ft7s->tH ) * tF;
-            ++pV;
-            pV->x = pX + (FLOAT)ft7s->aX + (FLOAT)ft7s->tW;
-            pV->y = pY - (FLOAT)ft7s->aY + (FLOAT)ft7s->tH;
-            pV->z = pZ;
-            pV->w = 1.0f;
-            pV->c = color;
-            pV->u = ( (FLOAT)ft7s->tX + tX + (FLOAT)ft7s->tW ) * tF;
-            pV->v = ( (FLOAT)ft7s->tY + tY + (FLOAT)ft7s->tH ) * tF;
-            IDirect3DVertexBuffer9_Unlock( txt->D3DVB );
-            break;
-        }
-    }
-
-    if( txt->adding == 2 )
-    {
-        txt->adding = 0;
-        TXT_EndAdd( txt );
-    }
-
-    ++txt->count;
 }
 /* Рендеринг текста */
 void            IDirect3DDevice9_TXT_Render( IDirect3DDevice9 *D3DD, T_TXT *txt )
 {
+    TXT_EditEnd( txt );
     switch( txt->D3DFVF )
     {
         case D3DFVF_3DT:

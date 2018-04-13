@@ -117,3 +117,15 @@ const char * GetName_D3DFMT( D3DFORMAT fmt )
     };
     return "???";
 }
+/* устанавливает 2Д проектор и вьюпорт */
+VOID        IDirect3DDevice9_SetVPP2D( IDirect3DDevice9 *D3DD, D3DVIEWPORT9 *pD3DVP )
+{
+    IDirect3DDevice9_SetViewport( D3DD, pD3DVP );
+    D3DMATRIX m = {
+        ._11 = 2.0f/(FLOAT)pD3DVP->Width, ._12 = 0.0f, ._13 = 0.0f, ._14 = 0.0f,
+        ._21 = 0.0f, ._22 =-2.0f/(FLOAT)pD3DVP->Height, ._23 = 0.0f, ._24 = 0.0f,
+        ._31 = 0.0f, ._32 = 0.0f, ._33 = 1.0f, ._34 = 0.0f,
+        ._41 =-1.0f, ._42 = 1.0f, ._43 = 0.0f, ._44 = 1.0f,
+        };
+    IDirect3DDevice9_SetTransform( D3DD, D3DTS_PROJECTION, &m );
+}

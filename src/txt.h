@@ -18,9 +18,9 @@
     /* Освобождение */
     void            TXT_Free( T_TXT *txt );
     /* Начать добавление */
-    void            TXT_BeginAdd( T_TXT *txt );
+    void            TXT_EditBegin( T_TXT *txt );
     /* Закончить добавление */
-    void            TXT_EndAdd( T_TXT *txt );
+    void            TXT_EditEnd( T_TXT *txt );
     /* Добавление квадрата */
     unsigned int    TXT_AddRect( T_TXT *txt, FLOAT pX, FLOAT pY, FLOAT pZ, DWORD color, FLOAT fW, FLOAT fH, FLOAT tU0, FLOAT tV0, FLOAT tU1, FLOAT tV2 );
     /* Добавление линии символов */

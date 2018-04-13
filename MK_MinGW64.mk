@@ -1,56 +1,15 @@
-.PHONY : all all_dirs clean
+.PHONY : all clean
 
-CC          := gcc
+CC := F:/PROGRAMS/MinGW-W64/i686-7.2.0-win32-sjlj-rt_v5-rev1/mingw32/bin/gcc.exe
 
-OUT_FILE    := _a_run.exe
-CPPFLAGS    :=
-CFLAGS      := -O3 -g -Wall -march=pentium4 -IF:/A5/SDK/freetype-2.8/include
-ASFLAGS     :=
-LDFLAGS     := -lD3D9 -LF:/A5/SDK/freetype-2.8 -lft2 -lGDI32 -lcomctl32
-
-# -Xpreprocessor -Xassembler -Xlinker
-
-DIR_INCLUDES:=
-DIR_LIBS    :=
-DIR_OBJ     := obj
-
-
-FILES_SRC   :=
-#\
-	src/log.c \
-	src/main.c \
-	src/api.c \
-	src/ft.c \
-	src/txt.c
-
-
-# Пути к объектным файлам
-SOURCES_OBJ := $(addprefix $(DIR_OBJ)/, $(addsuffix .cache.o, $(FILES_SRC)))
-# Все возможные папки файлов
-DIRS_ALL    := $(sort $(dir $(SOURCES_OBJ)))
-
-CPPFLAGS    += $(addprefix -I, $(DIR_INCLUDES))
-LDFLAGS     += $(addprefix -L, $(DIR_LIBS))
-
-
-# Компиляция объектных файлов
-$(SOURCES_OBJ)  : $(DIR_OBJ)/%.c.cache.o : %.c
-	$(CC) -c -o $@ $(CFLAGS) $(ASFLAGS) $(CPPFLAGS) $<
-
-
-# Компновока конечного файла из всех объектов
-$(OUT_FILE)     : $(SOURCES_OBJ)
-	$(CC) -o $@ $(SOURCES_OBJ) $(LDFLAGS)
-
-all             : all_dirs $(OUT_FILE)
-	$(CC) -o _a.exe src_/main.c $(CFLAGS) $(ASFLAGS) $(CPPFLAGS) $(LDFLAGS)
-
-all_dirs        :
-	-mkdir -p $(DIRS_ALL)
+all             :
+	$(CC) > 64gw-gcc.txt \
+	-v -mwindows -municode -msse2 \
+	-o 64_run.exe \
+	src64/main.c
 
 clean           :
-	-rm -rf $(OUT_FILE)
-	-rm -rf $(SOURCES_OBJ)
+
 
 
 # AR

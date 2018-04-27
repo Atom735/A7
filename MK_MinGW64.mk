@@ -3,10 +3,13 @@
 CC := F:/PROGRAMS/MinGW-W64/i686-7.2.0-win32-sjlj-rt_v5-rev1/mingw32/bin/gcc.exe
 
 all             :
-	$(CC) > 64gw-gcc.txt \
-	-v -mwindows -municode -msse2 \
-	-o 64_run.exe \
-	src64/main.c
+	$(CC) \
+	-mwindows -municode -msse2 \
+	-Wall \
+	-o " run.exe" \
+	src/main.c \
+	src/txt_WM.c \
+	-lShlwapi
 
 clean           :
 

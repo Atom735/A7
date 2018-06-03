@@ -7,10 +7,6 @@
 		{
 			"name": "Inlcudes MinGW-W64",
 			"path": "F:\\PROGRAMS\\MinGW-W64\\i686-7.2.0-win32-sjlj-rt_v5-rev1\\mingw32\\i686-w64-mingw32\\include"
-		},
-		{
-			"name": "ST3 Packages",
-			"path": "F:\\A5\\Sublime Text 3\\Data\\Packages"
 		}
 	]
 }

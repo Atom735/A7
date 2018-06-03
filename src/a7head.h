@@ -1,3 +1,7 @@
+#ifndef _A7D_A7HEAD_H
+#define _A7D_A7HEAD_H 0x20180427
+
+
 #ifndef UNICODE
 #define UNICODE
 #endif
@@ -7,3 +11,6 @@
 #define _WIN32_WINNT _WIN32_WINNT_WIN7
 
 #include <Windows.h>
+#include <WindowsX.h>
+
+#endif /* _A7D_A7HEAD_H */

@@ -1,5 +1,5 @@
-#include "head.h"
-#include "txt_.h"
+#include "a7head.h"
+#include "a7txt.h"
 
 LPCWSTR a7rTxt_WM( UINT uMsg )
 {

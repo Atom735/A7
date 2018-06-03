@@ -6,10 +6,12 @@ all             :
 	$(CC) \
 	-mwindows -municode -msse2 \
 	-Wall \
-	-o " run.exe" \
-	src/main.c \
-	src/txt_WM.c \
-	-lShlwapi
+	-o "run.exe" \
+	src/a7main.c \
+	src/a7log.c \
+	src/a7txt_WM.c \
+	-lShlwapi \
+	-lMsimg32
 
 clean           :
 
